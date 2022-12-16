@@ -346,3 +346,40 @@ tickets2 %>% rename(ext_processing_run_id = "_ext_processing_run_id") %>%
 tickets1 %>% rename(ext_processing_run_id = "_ext_processing_run_id") %>%
   left_join(processing %>% select("__kp_processing_blend_id", grade_processed), by = c("_ext_processing_blend_id"="__kp_processing_blend_id")) %>%
   filter(location_current == "MADOEK")
+
+
+
+
+# DE FACTO FINAL SCRIPT - THE ADDITION OF MISSING TICKETS FROM TPZ
+
+
+
+tickets1 %>% rename(ext_processing_run_id = "_ext_processing_run_id") %>%
+  filter(grade_internal != "TBDAU") %>% rename(ext_processing_blend_id = "_ext_processing_blend_id") %>%
+  filter(!grepl("/P$", grade_internal_reclass)) %>%
+  filter(location_current %in% c("Bay 8-9", "TPZ", "Transit - Bay 8-9", "Receiving C", "REC C (TPZ)", " TPZ", "TPZ ")) %>%
+  group_by(ext_processing_run_id, ext_processing_blend_id) %>% summarise(mass = sum(mass, na.rm = TRUE), value = sum(calc_total_value_dollars)) %>%
+  left_join(processing %>% select("__kp_processing_blend_id", grade_processed), by = c("ext_processing_blend_id"="__kp_processing_blend_id")) %>%
+  filter(!grepl("MTC", grade_processed)) %>%
+  filter(!grepl("HSPICK", grade_processed)) %>%
+  filter(!grepl("SCRAP", grade_processed)) %>%
+  filter(!grepl("HANDSTRIP", grade_processed)) %>%
+  select(mass, value, grade_processed) %>%
+  bind_rows(tickets1 %>% rename(ext_processing_run_id = "_ext_processing_run_id") %>%
+              filter(grade_internal == "TBDAU" | grade_internal_reclass == "TBDAU") %>% 
+              left_join(processing %>% select("__kp_processing_blend_id", grade_processed), by = c("_ext_processing_blend_id"="__kp_processing_blend_id")) %>%
+              filter(!grepl("/P$", grade_internal_reclass)) %>%
+              filter(!grepl("HANDSTRIP", grade_processed)) %>%
+              filter(!grepl("HSPICK", grade_processed)) %>%
+              filter(!grepl("MTC", grade_processed)) %>%
+              filter(!grepl("SCRAP", grade_processed)) %>%
+              filter(!is.na(grade_processed)) %>%
+              group_by(grade_processed) %>% summarise(mass = sum(mass, na.rm = TRUE), value = sum(calc_total_value_dollars)) %>%
+              select(mass, value, grade_processed)) %>%
+  ungroup %>% group_by(grade_processed) %>% summarise(mass = sum(mass), value = sum(value)) %>%
+  bind_rows(readxl::read_excel("C:/Users/charlesr/Documents/Green Reconciliation/Missing Tickets.xlsx") %>% janitor::clean_names() %>%
+              mutate(value = weight*ticket_price) %>% group_by(packed_grade) %>% summarise(mass = sum(weight), value = sum(value)) %>%
+              rename(grade_processed = packed_grade)) %>%
+  filter(!is.na(grade_processed)) %>%
+  group_by(grade_processed) %>% summarise(mass = sum(mass), value = sum(value)) %>%
+  rmsfuns::ViewXL()
