@@ -1,6 +1,6 @@
 library(tidyverse)
 library(odbc)
-library(dplyr)
+library(dbplyr)
 library(DBI)
 
 options("scipen"=10) 
@@ -21,7 +21,7 @@ con <- DBI::dbConnect(odbc::odbc(),
 start.time <- Sys.time()
 
 tickets <-
-  DBI::dbGetQuery(con, paste0("SELECT * FROM TICKETS")) %>% as_tibble
+  DBI::dbGetQuery(con, paste0("SELECT * FROM TICKETS"))
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time

@@ -3,3 +3,8 @@
 .RData
 .Ruserdata
 STC-data.Rproj.RData
+.secrets
+*.xlsx
+*.png
+*.jpg
+*.pdf
